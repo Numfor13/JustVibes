@@ -1,0 +1,49 @@
+.upload-dropzone {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--border-bright);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated-2);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.upload-dropzone:hover {
+  border-color: var(--wine-bright);
+  color: var(--text-primary);
+}
+
+.upload-dropzone--has-file {
+  border-style: solid;
+  border-color: var(--wine-bright);
+  color: var(--text-primary);
+}
+
+.upload-progress {
+  margin: 0.75rem 0 0.25rem;
+}
+
+.upload-progress__track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--bg-elevated-3);
+  overflow: hidden;
+}
+
+.upload-progress__fill {
+  height: 100%;
+  background: var(--gradient-signature);
+  transition: width 0.2s ease;
+}
+
+.upload-progress__label {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}

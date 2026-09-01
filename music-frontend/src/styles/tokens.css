@@ -1,0 +1,41 @@
+:root {
+  /* Color — wine leads, plum stays an undertone in gradients/shadows */
+  --bg: #120e13;
+  --bg-elevated: #1c1620;
+  --bg-elevated-2: #241a26;
+  --bg-elevated-3: #2c2030;
+
+  --wine: #8c2f45;
+  --wine-bright: #b23a57;
+  --wine-dim: #5c2033;
+  --plum: #4a2e52;
+
+  --text-primary: #f3eaea;
+  --text-secondary: #a99aa3;
+  --text-tertiary: #756876;
+
+  --border: #2e2430;
+  --border-bright: #3d2f3f;
+
+  --success: #6b8f71;
+  --danger: #c24545;
+  --danger-bright: #d95d5d;
+
+  --gradient-signature: linear-gradient(135deg, var(--wine) 0%, var(--plum) 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(140, 47, 69, 0.08) 0%, rgba(18, 14, 19, 0) 60%);
+
+  /* Type */
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Manrope", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Layout */
+  --header-h: 4.5rem;
+  --player-h: 5.5rem;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-elevated: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 0 1px rgba(178, 58, 87, 0.25), 0 8px 24px rgba(140, 47, 69, 0.25);
+}

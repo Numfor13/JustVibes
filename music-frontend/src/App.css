@@ -1,0 +1,14 @@
+.app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--gradient-surface), var(--bg);
+}
+
+.app--loading {
+  min-height: 100vh;
+}
+
+.app__main {
+  flex: 1;
+}

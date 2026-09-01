@@ -1,0 +1,19 @@
+# AWS CDK build and deployment artifacts
+cdk.out/
+.cdk.staging/
+
+# Python virtual environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local environment variables / credentials
+.env
+.env.local

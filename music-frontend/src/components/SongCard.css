@@ -1,0 +1,118 @@
+.song-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.song-card:hover {
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
+}
+
+.song-card--current {
+  border-color: var(--wine-bright);
+  box-shadow: var(--shadow-glow);
+}
+
+.song-card__cover {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.song-card__cover-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: rgba(18, 14, 19, 0.55);
+  backdrop-filter: blur(2px);
+  color: var(--text-primary);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.song-card:hover .song-card__cover-overlay,
+.song-card--current .song-card__cover-overlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.song-card__meta {
+  padding: 0.85rem 0.95rem 0.4rem;
+  min-width: 0;
+}
+
+.song-card__title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-card--current .song-card__title {
+  color: var(--wine-bright);
+}
+
+.song-card__artist {
+  margin-top: 0.15rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-card__uploader {
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-card__actions {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.6rem 0.8rem 0.85rem;
+  margin-top: auto;
+}
+
+.song-card__icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.song-card__icon-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-bright);
+  background: var(--bg-elevated-2);
+}
+
+.song-card__icon-btn--danger:hover {
+  color: var(--danger-bright);
+  border-color: var(--danger);
+}

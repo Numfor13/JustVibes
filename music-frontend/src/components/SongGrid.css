@@ -1,0 +1,83 @@
+.song-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.1rem;
+  padding: 1.75rem;
+}
+
+.song-card-skeleton {
+  aspect-ratio: 3 / 4.1;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    100deg,
+    var(--bg-elevated) 30%,
+    var(--bg-elevated-2) 50%,
+    var(--bg-elevated) 70%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.library-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 5rem 1.5rem;
+  color: var(--text-secondary);
+}
+
+.library-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.library-state__icon--danger {
+  color: var(--danger-bright);
+  border-color: var(--danger);
+}
+
+.library-state h3 {
+  color: var(--text-primary);
+  font-size: 1.15rem;
+}
+
+.library-state p {
+  max-width: 320px;
+  font-size: 0.9rem;
+}
+
+.library-state__btn {
+  margin-top: 0.75rem;
+  padding: 0.55rem 1.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--wine-bright);
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background 0.15s ease;
+}
+
+.library-state__btn:hover {
+  background: var(--wine-dim);
+}

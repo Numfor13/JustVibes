@@ -1,0 +1,51 @@
+.playlist-page {
+  padding: 1.75rem;
+}
+
+.playlist-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.25rem;
+}
+
+.playlist-page__back:hover {
+  color: var(--text-primary);
+}
+
+.playlist-page__heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.playlist-page__heading h2 {
+  font-size: 1.6rem;
+}
+
+.playlist-page__count {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.playlist-page__delete-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.playlist-page__delete-btn:hover:not(:disabled) {
+  color: var(--danger-bright);
+  border-color: var(--danger);
+}
