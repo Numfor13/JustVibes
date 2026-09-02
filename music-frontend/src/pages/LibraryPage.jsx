@@ -7,21 +7,15 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import AddToPlaylistModal from "../components/AddToPlaylistModal";
 import { useSongs } from "../hooks/useSongs";
 import "./LibraryPage.css";
-
-// A real, separate browser window/tab — not a client-side route change —
-// since it needs to work even if the person closes the main tab, and the
-// whole point (requirement 3) is a standalone "now playing" surface.
-function openNowPlaying(songId) {
-  window.open(
-    `/play/${songId}`,
-    "justvibes-player",
-    "width=420,height=560,noopener,noreferrer"
-  );
-}
+import {useNavigate} from "react-router-dom";
+import SongCard from "../components/SongCard";
+import "../components/SongGrid.css";
 
 export default function LibraryPage() {
   const { songs, status, error, search, setSearch, refresh, edit, remove } = useSongs(true);
-
+  const myUploads = songs.filter((s) => s.isOwner);
+  const otherSongs = songs.filter((s) => !s.isOwner);
+  const navigate = useNavigate();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editingSong, setEditingSong] = useState(null);
   const [deletingSong, setDeletingSong] = useState(null);
@@ -57,23 +51,66 @@ export default function LibraryPage() {
         </button>
       </div>
 
-      <div className="library-page__heading">
-        <h2>{search ? "Search results" : "Browse library"}</h2>
-        {status === "ready" && <span className="library-page__count">{songs.length} tracks</span>}
-      </div>
+            {(status !== "ready" || songs.length === 0) && (
+        <SongGrid
+          songs={songs}
+          status={status}
+          error={error}
+          search={search}
+          onPlay={(songId) => navigate(`/play/${songId}`)}
+          onEdit={setEditingSong}
+          onDeleteRequest={setDeletingSong}
+          onAddToPlaylist={setAddingToPlaylistSong}
+          onRetry={refresh}
+          onUploadClick={() => setUploadOpen(true)}
+        />
+      )}
 
-      <SongGrid
-        songs={songs}
-        status={status}
-        error={error}
-        search={search}
-        onPlay={openNowPlaying}
-        onEdit={setEditingSong}
-        onDeleteRequest={setDeletingSong}
-        onAddToPlaylist={setAddingToPlaylistSong}
-        onRetry={refresh}
-        onUploadClick={() => setUploadOpen(true)}
-      />
+      {status === "ready" && songs.length > 0 && (
+        <>
+          {myUploads.length > 0 && (
+            <section className="library-section">
+              <div className="library-page__heading">
+                <h2>My Uploads</h2>
+                <span className="library-page__count">{myUploads.length} tracks</span>
+              </div>
+              <div className="song-grid">
+                {myUploads.map((song) => (
+                  <SongCard
+                    key={song.songId}
+                    song={song}
+                    onPlay={(songId) => navigate(`/play/${songId}`)}
+                    onEdit={setEditingSong}
+                    onDeleteRequest={setDeletingSong}
+                    onAddToPlaylist={setAddingToPlaylistSong}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {otherSongs.length > 0 && (
+            <section className="library-section">
+              <div className="library-page__heading">
+                <h2>{search ? "Search results" : "Shared library"}</h2>
+                <span className="library-page__count">{otherSongs.length} tracks</span>
+              </div>
+              <div className="song-grid">
+                {otherSongs.map((song) => (
+                  <SongCard
+                    key={song.songId}
+                    song={song}
+                    onPlay={(songId) => navigate(`/play/${songId}`)}
+                    onEdit={setEditingSong}
+                    onDeleteRequest={setDeletingSong}
+                    onAddToPlaylist={setAddingToPlaylistSong}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
+      )}
 
       {uploadOpen && (
         <UploadModal onClose={() => setUploadOpen(false)} onUploaded={refresh} />

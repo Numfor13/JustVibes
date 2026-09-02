@@ -6,13 +6,6 @@ import { deletePlaylist, getPlaylist, removeSongFromPlaylist } from "../api";
 import "../components/SongGrid.css";
 import "./PlaylistPage.css";
 
-function openNowPlaying(songId) {
-  window.open(
-    `/play/${songId}`,
-    "justvibes-player",
-    "width=420,height=560,noopener,noreferrer"
-  );
-}
 
 export default function PlaylistPage() {
   const { playlistId } = useParams();
@@ -127,7 +120,7 @@ export default function PlaylistPage() {
             <SongCard
               key={song.songId}
               song={song}
-              onPlay={openNowPlaying}
+              onPlay={(songId) => navigate(`/play/${songId}`)}
               onRemoveFromPlaylist={handleRemoveSong}
             />
           ))}
