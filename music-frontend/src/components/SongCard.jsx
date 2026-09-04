@@ -14,7 +14,7 @@ export default function SongCard({
     <div className="song-card">
       <button
         className="song-card__cover"
-        style={coverStyle(song.songId)}
+        style={coverStyle(song)}
         onClick={() => onPlay(song.songId)}
         aria-label={`Play ${song.title} in a new window`}
       >
@@ -46,8 +46,7 @@ export default function SongCard({
           </button>
         )}
 
-        {/* Only rendered when the backend says isOwner: true — the real
-            enforcement lives in the Lambda, this is just UI tidiness. */}
+        
         {song.isOwner && onEdit && (
           <button
             className="song-card__icon-btn"
@@ -67,9 +66,6 @@ export default function SongCard({
           </button>
         )}
 
-        {/* Removing from a playlist is a playlist-membership action, not
-            a song-ownership one — available regardless of who uploaded
-            the song, since it only affects the playlist owner's list. */}
         {onRemoveFromPlaylist && (
           <button
             className="song-card__icon-btn song-card__icon-btn--danger"

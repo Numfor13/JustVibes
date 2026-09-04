@@ -13,7 +13,7 @@ function hashString(str) {
   return Math.abs(hash);
 }
 
-export function coverStyle(songId) {
+function gradientFor(songId) {
   const h = hashString(songId || "seed");
   const angle = ANGLE_STEPS[h % ANGLE_STEPS.length];
   const hueShift = HUE_SHIFTS[Math.floor(h / 7) % HUE_SHIFTS.length];
@@ -21,4 +21,20 @@ export function coverStyle(songId) {
   return {
     background: `linear-gradient(${angle}deg, hsl(${340 + hueShift} 45% 22%) 0%, hsl(${280 + hueShift} 30% 16%) 100%)`,
   };
+}
+
+export function coverStyle(songOrId) {
+  const isSong = typeof songOrId === "object" && songOrId !== null;
+  const songId = isSong ? songOrId.songId : songOrId;
+  const coverUrl = isSong ? songOrId.coverUrl : undefined;
+
+  if (coverUrl) {
+    return {
+      backgroundImage: `url(${coverUrl})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    };
+  }
+
+  return gradientFor(songId);
 }

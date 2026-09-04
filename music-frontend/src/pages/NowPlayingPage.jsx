@@ -52,7 +52,7 @@ export default function NowPlayingPage() {
 
   return (
     <div className="now-playing">
-      <div className="now-playing__cover" style={coverStyle(song.songId)}>
+      <div className="now-playing__cover" style={coverStyle(song)}>
         <Equalizer active={player.isPlaying} size="lg" />
       </div>
 

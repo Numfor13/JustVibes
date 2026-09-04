@@ -1,14 +1,25 @@
 import { useState } from "react";
+import { ImagePlus } from "lucide-react";
 import Modal from "./Modal";
+import { requestCoverUploadUrl } from "../api";
 
 export default function EditModal({ song, onClose, onSave }) {
   const [title, setTitle] = useState(song.title || "");
   const [artist, setArtist] = useState(song.artist || "");
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(song.coverUrl || null);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  const changed = title.trim() !== song.title || artist.trim() !== song.artist;
+  const changed = title.trim() !== song.title || artist.trim() !== song.artist || !!coverFile;
   const canSave = title.trim() && artist.trim() && changed && !saving;
+
+  function handleCoverPick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -17,7 +28,20 @@ export default function EditModal({ song, onClose, onSave }) {
     setSaving(true);
     setErrorMsg(null);
     try {
-      await onSave(song.songId, { title: title.trim(), artist: artist.trim() });
+      const body = { title: title.trim(), artist: artist.trim() };
+
+      if (coverFile) {
+        const { uploadUrl } = await requestCoverUploadUrl(song.songId, coverFile.type);
+        const putRes = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": coverFile.type },
+          body: coverFile,
+        });
+        if (!putRes.ok) throw new Error("Couldn't upload the cover image. Try again.");
+        body.hasCover = true;
+      }
+
+      await onSave(song.songId, body);
       onClose();
     } catch (err) {
       setErrorMsg(err.message || "Couldn't save changes. Try again.");
@@ -28,6 +52,25 @@ export default function EditModal({ song, onClose, onSave }) {
   return (
     <Modal title="Edit track" onClose={onClose}>
       <form onSubmit={handleSubmit}>
+        <label htmlFor="edit-cover" className="edit-modal__cover-picker">
+          {coverPreview ? (
+            <img src={coverPreview} alt="" className="edit-modal__cover-preview" />
+          ) : (
+            <span className="edit-modal__cover-placeholder">
+              <ImagePlus size={22} />
+              <span>Add cover image</span>
+            </span>
+          )}
+        </label>
+        <input
+          id="edit-cover"
+          type="file"
+          accept="image/*"
+          onChange={handleCoverPick}
+          disabled={saving}
+          hidden
+        />
+
         <div className="field">
           <label htmlFor="edit-title">Title</label>
           <input

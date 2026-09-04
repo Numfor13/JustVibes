@@ -54,6 +54,9 @@ def handler(event, context):
             return update_song(path_params["songId"], body, caller_sub)
         elif http_method == "DELETE" and resource == "/songs/{songId}":
             return delete_song(path_params["songId"],caller_sub)
+        elif http_method == "POST" and resource == "/songs/{songId}/cover-upload-url":
+            body = json.loads(event.get("body") or "{}")
+            return generate_cover_upload_url(path_params["songId"], body, caller_sub)
 
         elif http_method == "POST" and resource == "/playlists":
             body = json.loads(event.get("body") or "{}")
@@ -125,6 +128,30 @@ def generate_upload_url(body, caller_sub):
 
     return _response(200, {"uploadUrl": upload_url, "key": key})
 
+def generate_cover_upload_url(song_id, body, caller_sub):
+    song = Music_table.get_item(Key={"songId": song_id}).get("Item")
+    if not song:
+        return _response(404, {"message": f"Song {song_id} not found"})
+    if song.get("uploadedBy") != caller_sub:
+        return _response(403, {"message": "You can only edit songs you uploaded"})
+
+    content_type = body.get("contentType", "")
+    if not content_type.startswith("image/"):
+        return _response(400, {"message": "Must be an image"})
+
+    key = f"covers/{song_id}/cover"
+    upload_url = s3.generate_presigned_url(
+        "put_object",
+        Params={
+            "Bucket": BUCKET_NAME,
+            "Key": key,
+            "ContentType": content_type,
+        },
+        ExpiresIn=UPLOAD_URL_TTL_SECONDS,
+    )
+
+    return _response(200, {"uploadUrl": upload_url, "key": key})
+
 def list_songs(search, caller_sub):
 
     items = _scan_ready_songs()
@@ -157,11 +184,12 @@ def update_song(song_id, body, caller_sub):
 
     title = body.get("title")
     artist = body.get("artist")
+    has_cover = body.get("hasCover")
     title = title.strip() if isinstance(title, str) else None
     artist = artist.strip() if isinstance(artist, str) else None
 
-    if not title and not artist:
-        return _response(400, {"message": "Provide title and/or artist to update"})
+    if not title and not artist and not has_cover:
+        return _response(400, {"message": "Provide title, artist and/or hasCover to update"})
 
     existing = Music_table.get_item(Key={"songId": song_id}).get("Item")
     if not existing:
@@ -181,6 +209,10 @@ def update_song(song_id, body, caller_sub):
         set_clauses.append("#artist = :artist")
         expr_names["#artist"] = "artist"
         expr_values[":artist"] = artist
+    if has_cover is not None:
+        set_clauses.append("#hasCover = :hasCover")
+        expr_names["#hasCover"] = "hasCover"
+        expr_values[":hasCover"] = bool(has_cover)
 
     result = Music_table.update_item(
         Key={"songId": song_id},
@@ -372,12 +404,21 @@ def _song_to_response(item, caller_sub, names_by_sub):
             Params={"Bucket": BUCKET_NAME, "Key": item["s3Key"]},
             ExpiresIn=PLAYBACK_URL_TTL_SECONDS,
         )
+
+    cover_url = None
+    if item.get("hasCover"):
+        cover_url = s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": BUCKET_NAME, "Key": f"covers/{item['songId']}/cover"},
+            ExpiresIn=PLAYBACK_URL_TTL_SECONDS,
+        )
     uploaded_by = item.get("uploadedBy")
     return {
         "songId": item["songId"],
         "title": item.get("title"),
         "artist": item.get("artist"),
         "audioUrl": audio_url,
+         "coverUrl": cover_url,
         "uploadedAt": item.get("uploadedAt"),
         "uploaderName": names_by_sub.get(uploaded_by, "Unknown"),
         "isOwner": uploaded_by == caller_sub,

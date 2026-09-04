@@ -1,14 +1,15 @@
-// Talks to Cognito's IdP JSON API directly. SignUp / ConfirmSignUp /
-// InitiateAuth (USER_PASSWORD_AUTH & REFRESH_TOKEN_AUTH) are public,
-// unauthenticated actions — no SigV4 signing or AWS credentials required,
-// which is why this is a plain fetch instead of pulling in the full AWS SDK.
+// Talks to Cognito's IdP JSON API directly for email/password flows.
+// Google OAuth is handled via the Cognito Hosted UI (redirect-based).
 
-const REGION = import.meta.env.VITE_AWS_REGION;
-const CLIENT_ID = import.meta.env.VITE_COGNITO_CLIENT_ID;
+const REGION     = import.meta.env.VITE_AWS_REGION;
+const CLIENT_ID  = import.meta.env.VITE_COGNITO_CLIENT_ID;
+const COGNITO_DOMAIN   = import.meta.env.VITE_COGNITO_DOMAIN;
 const COGNITO_ENDPOINT = `https://cognito-idp.${REGION}.amazonaws.com/`;
 
-const SESSION_KEY = "justvibes.session";
+const SESSION_KEY      = "justvibes.session";
 const REFRESH_BUFFER_MS = 60_000; // refresh 1 min before actual expiry
+
+// ─── Cognito JSON API (email/password) ───────────────────────────────────────
 
 async function cognitoRequest(action, body) {
   const res = await fetch(COGNITO_ENDPOINT, {
@@ -23,19 +24,21 @@ async function cognitoRequest(action, body) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    // Cognito error shape: { __type: "UsernameExistsException", message: "..." }
+    // Cognito error shape: { __type: "NotAuthorizedException", message: "..." }
     throw new Error(data.message || data.__type || `Request failed (${res.status})`);
   }
 
   return data;
 }
 
+// ─── Session storage ──────────────────────────────────────────────────────────
+
 function storeSession(result, fallbackRefreshToken) {
-  if (!result) return;
+  if (!result) return null;
   const expiresAt = Date.now() + (result.ExpiresIn ?? 3600) * 1000;
   const session = {
-    idToken: result.IdToken,
-    accessToken: result.AccessToken,
+    idToken:      result.IdToken,
+    accessToken:  result.AccessToken,
     refreshToken: result.RefreshToken ?? fallbackRefreshToken,
     expiresAt,
   };
@@ -56,25 +59,21 @@ export function clearSession() {
   localStorage.removeItem(SESSION_KEY);
 }
 
-export function getEmailFromToken(idToken) {
+// ─── Token helpers ────────────────────────────────────────────────────────────
+
+function decodeToken(idToken) {
   try {
-    const payload = JSON.parse(atob(idToken.split(".")[1]));
-    return payload.email ?? null;
+    return JSON.parse(atob(idToken.split(".")[1]));
   } catch {
-    return null;
+    return {};
   }
 }
 
-export function getNameFromToken(idToken) {
-  try {
-    const payload = JSON.parse(atob(idToken.split(".")[1]));
-    return payload.name ?? null;
-  } catch {
-    return null;
-  }
-}
+export const getEmailFromToken = (idToken) => decodeToken(idToken).email ?? null;
+export const getNameFromToken  = (idToken) => decodeToken(idToken).name  ?? null;
 
-/** POST /signup equivalent — self-service registration. */
+// ─── Email / password auth ────────────────────────────────────────────────────
+
 export function signUp(email, password, name) {
   return cognitoRequest("SignUp", {
     ClientId: CLIENT_ID,
@@ -82,12 +81,11 @@ export function signUp(email, password, name) {
     Password: password,
     UserAttributes: [
       { Name: "email", Value: email },
-      { Name: "name", Value: name },
+      { Name: "name",  Value: name  },
     ],
   });
 }
 
-/** Verifies the emailed confirmation code. */
 export function confirmSignUp(email, code) {
   return cognitoRequest("ConfirmSignUp", {
     ClientId: CLIENT_ID,
@@ -103,8 +101,10 @@ export function resendConfirmationCode(email) {
   });
 }
 
-/** Signs in and stores the resulting tokens. Returns the raw AuthenticationResult. */
 export async function signIn(email, password) {
+  // Clear any in-flight refresh so a fresh sign-in doesn't collide
+  _refreshInFlight = null;
+
   const data = await cognitoRequest("InitiateAuth", {
     AuthFlow: "USER_PASSWORD_AUTH",
     ClientId: CLIENT_ID,
@@ -113,21 +113,71 @@ export async function signIn(email, password) {
   return storeSession(data.AuthenticationResult);
 }
 
+// ─── Google OAuth (Cognito Hosted UI redirect) ────────────────────────────────
+
+export function initiateGoogleSignIn() {
+  const redirectUri = encodeURIComponent(`${window.location.origin}/oauth/callback`);
+  const url =
+    `${COGNITO_DOMAIN}/oauth2/authorize` +
+    `?client_id=${CLIENT_ID}` +
+    `&response_type=code` +
+    `&scope=openid+email+profile` +
+    `&identity_provider=Google` +
+    `&redirect_uri=${redirectUri}`;
+  window.location.href = url;
+}
+
+export async function exchangeCodeForTokens(code) {
+  const redirectUri = `${window.location.origin}/oauth/callback`;
+  const params = new URLSearchParams({
+    grant_type:   "authorization_code",
+    client_id:    CLIENT_ID,
+    code,
+    redirect_uri: redirectUri,
+  });
+
+  const res = await fetch(`${COGNITO_DOMAIN}/oauth2/token`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body:    params.toString(),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error_description || data.error || "OAuth token exchange failed");
+
+  return storeSession({
+    IdToken:      data.id_token,
+    AccessToken:  data.access_token,
+    RefreshToken: data.refresh_token,
+    ExpiresIn:    data.expires_in,
+  });
+}
+
+// ─── Session refresh — deduplicated ──────────────────────────────────────────
+//
+// React StrictMode mounts effects twice in development, which means two
+// concurrent getValidIdToken() calls can race and both try to use the refresh
+// token at the same time. Cognito refresh tokens are single-use, so the second
+// request always gets a 400. We fix this by sharing a single in-flight promise:
+// if a refresh is already running, every concurrent caller waits on the same
+// promise instead of starting a new one.
+
+let _refreshInFlight = null;
+
 async function refreshSession(refreshToken) {
-  const data = await cognitoRequest("InitiateAuth", {
+  if (_refreshInFlight) return _refreshInFlight;
+
+  _refreshInFlight = cognitoRequest("InitiateAuth", {
     AuthFlow: "REFRESH_TOKEN_AUTH",
     ClientId: CLIENT_ID,
     AuthParameters: { REFRESH_TOKEN: refreshToken },
-  });
-  // A refresh response never includes a new refresh token — keep the old one.
-  return storeSession(data.AuthenticationResult, refreshToken);
+  })
+    .then((data) => storeSession(data.AuthenticationResult, refreshToken))
+    .finally(() => { _refreshInFlight = null; });
+
+  return _refreshInFlight;
 }
 
-/**
- * Returns a currently-valid idToken, transparently refreshing it if it's
- * expired or about to be. Returns null if there's no session (or the
- * refresh token itself has expired), meaning the user needs to sign in.
- */
 export async function getValidIdToken() {
   const session = loadSession();
   if (!session) return null;
@@ -143,7 +193,7 @@ export async function getValidIdToken() {
 
   try {
     const refreshed = await refreshSession(session.refreshToken);
-    return refreshed.idToken;
+    return refreshed?.idToken ?? null;
   } catch {
     clearSession();
     return null;

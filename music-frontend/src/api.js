@@ -20,8 +20,6 @@ async function unwrap(res) {
   }
 
   if (res.status === 401) {
-    // Session's gone (refresh token itself expired, or token was rejected).
-    // Clear it and tell the auth context to drop back to the sign-in screen.
     clearSession();
     window.dispatchEvent(new Event("justvibes:unauthorized"));
     throw new Error("Your session expired. Please sign in again.");
@@ -41,7 +39,6 @@ async function unwrap(res) {
 export async function getSongs(search) {
   const url = new URL(`${API_URL}songs`);
   if (search) url.searchParams.set("search", search);
-
   const res = await fetch(url, { headers: await authHeaders() });
   return unwrap(res);
 }
@@ -60,6 +57,16 @@ export async function requestUploadUrl({ fileName, contentType, title, artist })
     method: "POST",
     headers: await authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ fileName, contentType, title, artist }),
+  });
+  return unwrap(res);
+}
+
+/** POST /songs/{songId}/cover-upload-url -> { uploadUrl, key } */
+export async function requestCoverUploadUrl(songId, contentType) {
+  const res = await fetch(`${API_URL}songs/${encodeURIComponent(songId)}/cover-upload-url`, {
+    method: "POST",
+    headers: await authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ contentType }),
   });
   return unwrap(res);
 }
@@ -87,12 +94,12 @@ export function uploadFileToS3(uploadUrl, file, onProgress) {
   });
 }
 
-/** PUT /songs/{songId} body: { title?, artist? } */
-export async function updateSong(songId, { title, artist }) {
+/** PUT /songs/{songId} body: { title?, artist?, hasCover? } */
+export async function updateSong(songId, { title, artist, hasCover }) {
   const res = await fetch(`${API_URL}songs/${encodeURIComponent(songId)}`, {
     method: "PUT",
     headers: await authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ title, artist }),
+    body: JSON.stringify({ title, artist, hasCover }),
   });
   return unwrap(res);
 }
