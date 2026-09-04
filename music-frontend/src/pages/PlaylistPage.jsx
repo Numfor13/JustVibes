@@ -116,11 +116,17 @@ export default function PlaylistPage() {
 
       {status === "ready" && playlist.songs.length > 0 && (
         <div className="song-grid">
-          {playlist.songs.map((song) => (
+          {playlist.songs.map((song, index) => (
             <SongCard
               key={song.songId}
               song={song}
-              onPlay={(songId) => navigate(`/play/${songId}`)}
+              onPlay={(songId) => navigate(`/play/${songId}`,
+                {
+                  state: {
+                    queue: playlist.songs.map((s) => s.songId),
+                    index,
+                  },
+              })}
               onRemoveFromPlaylist={handleRemoveSong}
             />
           ))}

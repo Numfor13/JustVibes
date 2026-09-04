@@ -1,5 +1,8 @@
-// Talks to Cognito's IdP JSON API directly for email/password flows.
-// Google OAuth is handled via the Cognito Hosted UI (redirect-based).
+import {
+  CognitoUserPool,
+  CognitoUser,
+  AuthenticationDetails,
+} from "amazon-cognito-identity-js";
 
 const REGION     = import.meta.env.VITE_AWS_REGION;
 const CLIENT_ID  = import.meta.env.VITE_COGNITO_CLIENT_ID;
@@ -9,6 +12,10 @@ const COGNITO_ENDPOINT = `https://cognito-idp.${REGION}.amazonaws.com/`;
 const SESSION_KEY      = "justvibes.session";
 const REFRESH_BUFFER_MS = 60_000; // refresh 1 min before actual expiry
 
+const userPool = new CognitoUserPool({
+  UserPoolId: import.meta.env.VITE_USER_POOL_ID,
+  ClientId: CLIENT_ID,
+});
 // ─── Cognito JSON API (email/password) ───────────────────────────────────────
 
 async function cognitoRequest(action, body) {
@@ -102,15 +109,24 @@ export function resendConfirmationCode(email) {
 }
 
 export async function signIn(email, password) {
-  // Clear any in-flight refresh so a fresh sign-in doesn't collide
   _refreshInFlight = null;
 
-  const data = await cognitoRequest("InitiateAuth", {
-    AuthFlow: "USER_PASSWORD_AUTH",
-    ClientId: CLIENT_ID,
-    AuthParameters: { USERNAME: email, PASSWORD: password },
+  return new Promise((resolve, reject) => {
+    const user = new CognitoUser({ Username: email, Pool: userPool });
+    const authDetails = new AuthenticationDetails({ Username: email, Password: password });
+
+    user.authenticateUser(authDetails, {
+      onSuccess: (session) => {
+        resolve(storeSession({
+          IdToken:      session.getIdToken().getJwtToken(),
+          AccessToken:  session.getAccessToken().getJwtToken(),
+          RefreshToken: session.getRefreshToken().getToken(),
+          ExpiresIn:    3600,
+        }));
+      },
+      onFailure: (err) => reject(new Error(err.message || "Sign in failed")),
+    });
   });
-  return storeSession(data.AuthenticationResult);
 }
 
 // ─── Google OAuth (Cognito Hosted UI redirect) ────────────────────────────────

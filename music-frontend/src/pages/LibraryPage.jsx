@@ -7,7 +7,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import AddToPlaylistModal from "../components/AddToPlaylistModal";
 import { useSongs } from "../hooks/useSongs";
 import "./LibraryPage.css";
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import SongCard from "../components/SongCard";
 import "../components/SongGrid.css";
 
@@ -20,6 +20,16 @@ export default function LibraryPage() {
   const [editingSong, setEditingSong] = useState(null);
   const [deletingSong, setDeletingSong] = useState(null);
   const [addingToPlaylistSong, setAddingToPlaylistSong] = useState(null);
+
+  // Full ordered list for prev/next — my uploads first, then shared
+  const orderedSongs = [...myUploads, ...otherSongs];
+
+  function handlePlay(songId) {
+    const index = orderedSongs.findIndex((s) => s.songId === songId);
+    navigate(`/play/${songId}`, {
+      state: { queue: orderedSongs.map((s) => s.songId), index },
+    });
+  }
 
   return (
     <div className="library-page">
@@ -51,13 +61,13 @@ export default function LibraryPage() {
         </button>
       </div>
 
-            {(status !== "ready" || songs.length === 0) && (
+      {(status !== "ready" || songs.length === 0) && (
         <SongGrid
           songs={songs}
           status={status}
           error={error}
           search={search}
-          onPlay={(songId) => navigate(`/play/${songId}`)}
+          onPlay={handlePlay}
           onEdit={setEditingSong}
           onDeleteRequest={setDeletingSong}
           onAddToPlaylist={setAddingToPlaylistSong}
@@ -79,7 +89,7 @@ export default function LibraryPage() {
                   <SongCard
                     key={song.songId}
                     song={song}
-                    onPlay={(songId) => navigate(`/play/${songId}`)}
+                    onPlay={handlePlay}
                     onEdit={setEditingSong}
                     onDeleteRequest={setDeletingSong}
                     onAddToPlaylist={setAddingToPlaylistSong}
@@ -100,7 +110,7 @@ export default function LibraryPage() {
                   <SongCard
                     key={song.songId}
                     song={song}
-                    onPlay={(songId) => navigate(`/play/${songId}`)}
+                    onPlay={handlePlay}
                     onEdit={setEditingSong}
                     onDeleteRequest={setDeletingSong}
                     onAddToPlaylist={setAddingToPlaylistSong}

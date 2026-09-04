@@ -49,6 +49,11 @@ export function useAudioPlayback(audioUrl) {
       audioRef.current.src = audioUrl;
       setProgress(0);
       setIsPlaying(false);
+       audioRef.current.play()
+      .then(() => setIsPlaying(true))
+      .catch(() => {
+        // Browser blocked autoplay — user will press play manually
+      });
     }
   }, [audioUrl]);
 
